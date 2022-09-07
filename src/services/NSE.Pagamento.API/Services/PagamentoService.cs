@@ -1,8 +1,10 @@
 ﻿using FluentValidation.Results;
+using NSE.Core.DomainObjects;
 using NSE.Core.Messages.Integration;
 using NSE.Pagamento.API.Facade;
 using NSE.Pagamento.API.Models;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace NSE.Pagamento.API.Services
@@ -47,14 +49,41 @@ namespace NSE.Pagamento.API.Services
             return new ResponseMessage(validationResult);
         }
 
-        public Task<ResponseMessage> CancelarPagamento(Guid pedidoId)
+        public async Task<ResponseMessage> CancelarPagamento(Guid pedidoId)
         {
             throw new NotImplementedException();
         }
 
-        public Task<ResponseMessage> CapturarPagamento(Guid pedidoId)
+        public async Task<ResponseMessage> CapturarPagamento(Guid pedidoId)
         {
-            throw new NotImplementedException();
+            var transacoes = await _pagamentoRepository.ObterTransacaoesPorPedidoId(pedidoId);
+            var transacaoAutorizada = transacoes?.FirstOrDefault(t => t.Status == StatusTransacaoEnum.Autorizado);
+            var validationResult = new ValidationResult();
+
+            if (transacaoAutorizada == null) throw new DomainException($"Transação não encontrada para o pedido {pedidoId}");
+
+            var transacao = await _pagamentoFacade.CapturarPagamento(transacaoAutorizada);
+
+            if (transacao.Status != StatusTransacaoEnum.Pago)
+            {
+                validationResult.Errors.Add(new ValidationFailure("Pagamento",
+                    $"Não foi possível capturar o pagamento do pedido {pedidoId}"));
+
+                return new ResponseMessage(validationResult);
+            }
+
+            transacao.PagamentoId = transacaoAutorizada.PagamentoId;
+            _pagamentoRepository.AdicionarTransacao(transacao);
+
+            if (!await _pagamentoRepository.UnitOfWork.Commit())
+            {
+                validationResult.Errors.Add(new ValidationFailure("Pagamento",
+                    $"Não foi possível persistir a captura do pagamento do pedido {pedidoId}"));
+
+                return new ResponseMessage(validationResult);
+            }
+
+            return new ResponseMessage(validationResult);
         }
     }
 }

@@ -43,6 +43,26 @@ namespace NSE.Pagamento.API.Facade
             return ParaTransacao(await transacao.AuthorizeCardTransaction());
         }
 
+        public async Task<Transacao> CapturarPagamento(Transacao transacao)
+        {
+            var nerdsPagSvc = new NerdsPagService(_pagamentoConfig.DefaultApiKey,
+                _pagamentoConfig.DefaultEncryptionKey);
+
+            var transaction = ParaTransaction(transacao, nerdsPagSvc);
+
+            return ParaTransacao(await transaction.CaptureCardTransaction());
+        }
+
+        public async Task<Transacao> CancelarAutorizacao(Transacao transacao)
+        {
+            var nerdsPagSvc = new NerdsPagService(_pagamentoConfig.DefaultApiKey,
+                _pagamentoConfig.DefaultEncryptionKey);
+
+            var transaction = ParaTransaction(transacao, nerdsPagSvc);
+
+            return ParaTransacao(await transaction.CancelAuthorization());
+        }
+
         public static Transacao ParaTransacao(Transaction transaction)
         {
             return new Transacao
@@ -56,6 +76,20 @@ namespace NSE.Pagamento.API.Facade
                 DataTransacao = transaction.TransactionDate,
                 NSU = transaction.Nsu,
                 TID = transaction.Tid
+            };
+        }
+
+        public static Transaction ParaTransaction(Transacao transacao, NerdsPagService nerdsPagService)
+        {
+            return new Transaction(nerdsPagService)
+            {
+                Status = (TransactionStatusEnum)transacao.Status,
+                Amount = transacao.ValorTotal,
+                CardBrand = transacao.BandeiraCartao,
+                AuthorizationCode = transacao.CodigoAutorizacao,
+                Cost = transacao.CustoTransacao,
+                Nsu = transacao.NSU,
+                Tid = transacao.TID
             };
         }
     }

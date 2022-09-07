@@ -31,6 +31,7 @@ namespace NSE.Catalogo.API
             services.AddJwtConfiguration(Configuration);
             services.RegisterServices();
             services.AddSwaggerConfiguration();
+            services.AddMessageBusConfiguration(Configuration);
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
