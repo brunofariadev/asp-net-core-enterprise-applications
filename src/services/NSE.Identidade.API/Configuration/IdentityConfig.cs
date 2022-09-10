@@ -15,6 +15,8 @@ namespace NSE.Identidade.API.Configuration
         {
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            services.AddJwksManager()
+                .PersistKeysToDatabaseStore<ApplicationDbContext>();
             services.AddDefaultIdentity<IdentityUser>()
                 .AddRoles<IdentityRole>()
                 .AddErrorDescriber<IdentityMensagensPortugues>()

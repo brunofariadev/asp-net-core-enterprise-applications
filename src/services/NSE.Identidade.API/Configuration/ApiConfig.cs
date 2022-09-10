@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NSE.WebAPI.Core.Identidade;
+using NSE.WebAPI.Core.Usuario;
 
 namespace NSE.Identidade.API.Configuration
 {
@@ -11,6 +12,7 @@ namespace NSE.Identidade.API.Configuration
         public static IServiceCollection AddApiConfiguration(this IServiceCollection services)
         {
             services.AddControllers();
+            services.AddScoped<IAspNetUser, AspNetUser>();
             return services;
         }
 
@@ -27,6 +29,7 @@ namespace NSE.Identidade.API.Configuration
             {
                 endpoints.MapControllers();
             });
+            app.UseJwksDiscovery();
             return app;
         }
     }

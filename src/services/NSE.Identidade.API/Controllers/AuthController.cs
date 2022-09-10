@@ -15,6 +15,8 @@ using NSE.WebAPI.Core.Controllers;
 using NSE.Core.Messages.Integration;
 using EasyNetQ;
 using NSE.MessageBus;
+using NSE.WebAPI.Core.Usuario;
+using NetDevPack.Security.Jwt.Core.Interfaces;
 
 namespace NSE.Identidade.API.Controllers
 {
@@ -25,15 +27,20 @@ namespace NSE.Identidade.API.Controllers
         private readonly UserManager<IdentityUser> _userManager;
         private readonly AppSettings _appSettings;
         private IMessageBus _bus;
+        private IAspNetUser _aspNetUser;
+        private readonly IJwtService _jwksService;
 
         public AuthController(SignInManager<IdentityUser> signInManager,
             UserManager<IdentityUser> userManager,
-            IOptions<AppSettings> appSettings, IMessageBus bus)
+            IOptions<AppSettings> appSettings, IMessageBus bus, IAspNetUser aspNetUser,
+            IJwtService jwksService)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _appSettings = appSettings.Value;
             _bus = bus;
+            _aspNetUser = aspNetUser;
+            _jwksService = jwksService;
         }
 
         [HttpPost("nova-conta")]
@@ -111,7 +118,7 @@ namespace NSE.Identidade.API.Controllers
             var user = await _userManager.FindByNameAsync(email);
             var claims = await _userManager.GetClaimsAsync(user);
             var identityClaims = await ObterClaimsUsuario(user, claims);
-            var encodedToken = CodificarToken(identityClaims);
+            var encodedToken = await CodificarToken(identityClaims);
             return ObterRespostaToken(user, claims, encodedToken);
         }
 
@@ -132,17 +139,18 @@ namespace NSE.Identidade.API.Controllers
             return identityClaims;
         }
 
-        private string CodificarToken(ClaimsIdentity identityClaims)
+        private async Task<string> CodificarToken(ClaimsIdentity identityClaims)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
+            var currentIssuer =
+                $"{_aspNetUser.ObterHttpContext().Request.Scheme}://{_aspNetUser.ObterHttpContext().Request.Host}";
+            var key = await _jwksService.GetCurrentSigningCredentials();
             var token = tokenHandler.CreateToken(new SecurityTokenDescriptor
             {
-                Issuer = _appSettings.Emissor,
-                Audience = _appSettings.ValidoEm,
+                Issuer = currentIssuer,
                 Subject = identityClaims,
-                Expires = DateTime.UtcNow.AddHours(_appSettings.ExpiracaoHoras),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                Expires = DateTime.UtcNow.AddHours(1),
+                SigningCredentials = key
             });
             var encodedToken = tokenHandler.WriteToken(token);
             return encodedToken;
