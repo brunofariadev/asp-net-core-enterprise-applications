@@ -14,6 +14,7 @@ namespace NSE.WebAPI.Core.Usuario
         Guid ObterUserId();
         string ObterUserEmail();
         string ObterUserToken();
+        string ObterUserRefreshToken();
         bool EstaAutenticado();
         bool PossuiRole(string role);
         IEnumerable<Claim> ObterClaims();
@@ -65,6 +66,11 @@ namespace NSE.WebAPI.Core.Usuario
         {
             return _accessor.HttpContext;
         }
+
+        public string ObterUserRefreshToken()
+        {
+            return EstaAutenticado() ? _accessor.HttpContext.User.GetUserRefreshToken() : "";
+        }
     }
 
     public static class ClaimsPrincipalExtensions
@@ -99,6 +105,17 @@ namespace NSE.WebAPI.Core.Usuario
             }
 
             var claim = principal.FindFirst("JWT");
+            return claim?.Value;
+        }
+
+        public static string GetUserRefreshToken(this ClaimsPrincipal principal)
+        {
+            if (principal == null)
+            {
+                throw new ArgumentException(nameof(principal));
+            }
+
+            var claim = principal.FindFirst("RefreshToken");
             return claim?.Value;
         }
     }

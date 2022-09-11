@@ -13,6 +13,8 @@ namespace NSE.Identidade.API.Configuration
     {
         public static IServiceCollection AddIdentityConfiguration(this IServiceCollection services, IConfiguration configuration)
         {
+            var appSettingsSection = configuration.GetSection("AppTokenSettings");
+            services.Configure<AppTokenSettings>(appSettingsSection);
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
             services.AddJwksManager()
@@ -22,7 +24,7 @@ namespace NSE.Identidade.API.Configuration
                 .AddErrorDescriber<IdentityMensagensPortugues>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
-            services.AddJwtConfiguration(configuration);
+            //services.AddJwtConfiguration(configuration);
             return services;
         }
     }
