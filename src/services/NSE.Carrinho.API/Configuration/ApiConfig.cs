@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using NSE.WebAPI.Core.Identidade;
 using Microsoft.Extensions.Hosting;
 using NSE.Carrinho.API.Data;
+using NSE.Carrinho.API.Services.gRPC;
 
 namespace NSE.Carrinho.API.Configuration
 {
@@ -16,6 +17,7 @@ namespace NSE.Carrinho.API.Configuration
             services.AddDbContext<CarrinhoContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
             services.AddControllers();
+            services.AddGrpc();
             services.AddCors(options =>
             {
                 options.AddPolicy("Total",
@@ -40,6 +42,7 @@ namespace NSE.Carrinho.API.Configuration
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapGrpcService<CarrinhoGrpcService>().RequireCors("Total");
             });
         }
     }
